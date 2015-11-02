@@ -17,12 +17,14 @@ def gradient_descent(x_init, f, be, learning_rate=0.1, epsilon=10e-9):
     f_init = f(x_init)
     grad_f = Autodiff(f_init, be=be, next_error=None)
     while True:
-        f_init = f(x_init)
         x_new[:] = x_init - learning_rate * grad_f.get_grad_tensor([x_init])[0]
         f_new = f(x_new)
         if conv_test(f_init, f_new, be) < epsilon:
-            return x_new
+            f_val = be.empty((1, 1))
+            f_val[:] = f_new
+            return x_new, f_val
         x_init[:] = x_new
+        f_init = f(x_init)
 
 
 def newton_method(x_init, f, epsilon=1e-3):
