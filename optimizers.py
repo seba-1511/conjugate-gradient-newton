@@ -43,11 +43,13 @@ def newton_method(x_init, f, be, epsilon=1e-3):
     f_init = f(x_init)
     f_new = f(x_new)
     grad_f = Autodiff(f_init, be=be, next_error=None)
-    hessian_f = Autodiff(grad_f.get_grad_op_tree([x_init])[0], be=be, next_error=None)
+    grad_f = grad_f.get_grad_op_tree([x_init])[0]
+    hessian_f = Autodiff(grad_f, be=be, next_error=None)
+    hessian_f = hessian_f.get_grad_op_tree([x_init])[0]
     while True:
-        x_new[:] = x_init - grad_f.get_grad_tensor([x_init])[0] / hessian_f.get_grad_tensor([x_init])[0]
-        if conv_vec_test(x_init, x_new, be) < epsilon:
-        # if conv_test(f_init, f_new, be) < epsilon:
+        x_new[:] = x_init - grad_f / hessian_f
+        # if conv_vec_test(x_init, x_new, be) < epsilon:
+        if conv_test(f_init, f_new, be) < epsilon:
             f_val = be.empty((1, 1))
             f_val[:] = f_new
             return x_new, f_val
