@@ -23,7 +23,7 @@ def conv_vec_test(x_init, x_new, be):
     return convergence.get()[0]
 
 
-def gradient_descent(x_init, f, be, learning_rate=0.1, epsilon=10e-9):
+def gradient_descent(x_init, f, be, learning_rate=0.1, epsilon=1e-9):
     x_new = be.zeros_like(x_init)
     f_init = f(x_init)
     f_new = f(x_new)
@@ -38,7 +38,7 @@ def gradient_descent(x_init, f, be, learning_rate=0.1, epsilon=10e-9):
         x_init[:] = x_new
 
 
-def newton_method(x_init, f, be, epsilon=1e-3):
+def newton_method(x_init, f, be, epsilon=1e-9):
     x_new = be.zeros_like(x_init)
     f_init = f(x_init)
     f_new = f(x_new)
@@ -56,5 +56,20 @@ def newton_method(x_init, f, be, epsilon=1e-3):
         x_init[:] = x_new
 
 
+def newton_backtracking(x_init, f, be, epsilon=1e-9):
+    pass
+
+
 def conjugate_gradients(x_init, f, epsilon=1e-3):
     return 0, 0
+
+
+def fletcher_reeves(x_init, f, be, epsilon=1e-9):
+    x_new = be.zeros_like(x_init)
+    f_init = f(x_init)
+    f_new = f(x_new)
+    grad_f = Autodiff(f_init, be, next_error=None)
+    grad_f = grad_f.get_grad_op_tree([x_init])[0]
+    while True:
+        alpha, _ = None # implement the line search
+
