@@ -16,10 +16,12 @@ def conv_test(f_init, f_new, be):
 def conv_vec_test(x_init, x_new, be):
     """ A simple convergence test using vector values"""
     convergence = be.empty((1, 1))
-    convergence[:] = be.sqrt(x_init * x_init)
+    temp = be.zeros_like(x_init)
+    convergence[:] = be.sqrt(be.dot(x_init.T, x_init))
     # Avoids numerical error:
     convergence[:] = max(1, convergence.get())
-    convergence[:] = be.absolute(x_new - x_init) / convergence
+    temp[:] = x_new - x_init
+    convergence[:] = be.sqrt(be.dot(temp.T, temp)) / convergence
     return convergence.get()[0]
 
 
