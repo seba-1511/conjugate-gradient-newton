@@ -1,23 +1,49 @@
 #!/usr/bin/env python
 
 import numpy as np
+import matplotlib.pylab as plt
 from numpy.linalg import norm, inv
 from scipy.optimize import minimize_scalar
 
 np.seterr(all='raise')
+
+MAX_STEP = 10000
 
 
 def conv_test(z_init, z_new):
     return norm(z_new - z_init) / max(1.0, norm(z_init))
 
 
-def gradient_descent(z_init, f, df, learning_rate=0.01, epsilon=1e-3):
+def get_conv_color(res, epsilon=1e-3):
+    res = np.rint(res)
+    if norm(res - np.array([0, 1])) < epsilon:
+        return 1
+    if norm(res - np.array([0, -1])) < epsilon:
+        return 2
+    if norm(res - np.array([1, 0])) < epsilon:
+        return 3
+    if norm(res - np.array([-1, 0])) < epsilon:
+        return 4
+    return -2
+
+
+def print_matrix(mat, name, interval):
+    fig = plt.figure()
+    cmap = plt.cm.get_cmap('PiYG', 11)
+    plt.imshow(mat, cmap=cmap)
+    # plt.colorbar()
+    # plt.xlim([-interval, interval])
+    # plt.ylim([-interval, interval])
+    plt.savefig(name)
+
+
+def gradient_descent(z_init, f, df, learning_rate=0.1, epsilon=1e-3):
     steps = 0
     while True:
         steps += 1
         z_new = z_init - (learning_rate * df(z_init))
-        if conv_test(z_init, z_new) < epsilon:
-            return f(z_new), steps
+        if conv_test(z_init, z_new) < epsilon or steps > MAX_STEP:
+            return z_new, steps
         z_init = z_new
 
 
@@ -28,15 +54,14 @@ def newton_backtrack(z_init, f, df, Hf, epsilon=1e-3):
         try:
             s = np.dot(inv(Hf(z_init)), df(z_init))
         except:
-            # z_init = 0
-            return f(z_init), 0
+            return z_init, -1
         z_new = z_init - s
         # Backtracking step:
         while norm(df(z_new)) >= norm(df(z_init)):
             s /= 2.0
             z_new = z_init - s
-        if conv_test(z_init, z_new) < epsilon:
-            return f(z_new), steps
+        if conv_test(z_init, z_new) < epsilon or steps > MAX_STEP:
+            return z_new, steps
         z_init = z_new
 
 
@@ -49,7 +74,7 @@ def conjugate_gradients(z_init, f, df, epsilon=1e-3):
         z_new = z_init + alpha * d
         # Why convergence test needed ?
         if norm(df(z_new)) < epsilon or conv_test(z_init, z_new) < epsilon:
-            return f(z_new), steps
+            return z_new, steps
         g_init = df(z_init)
         g_new = df(z_new)
         beta = (np.dot(g_new, g_new) - np.dot(g_new, g_init)) / np.dot(g_init, g_init)
@@ -74,33 +99,62 @@ if __name__ == '__main__':
         ],
     ])
 
-    desc_res = np.zeros((100, 100))
-    newton_res = np.zeros((100, 100))
-    conj_res = np.zeros((100, 100))
+    # f = lambda z: np.dot(z, z)
+    # df = lambda z: np.array([
+        # 2*z[0],
+        # 2*z[1]
+    # ])
 
-    desc_steps = np.zeros((100, 100))
-    newton_steps = np.zeros((100, 100))
-    conj_steps = np.zeros((100, 100))
+    interval = 2.0
+    resolution = 100.0
 
-    interval = 0.2
+    desc_res = np.zeros((resolution, resolution))
+    newton_res = np.zeros((resolution, resolution))
+    conj_res = np.zeros((resolution, resolution))
 
-    for k in xrange(100):
-        x = -interval + (2 * interval * k / 100.0)
-        for j in xrange(100):
-            y = -interval + (2 * interval * j / 100.0)
+    desc_steps = np.zeros((resolution, resolution))
+    newton_steps = np.zeros((resolution, resolution))
+    conj_steps = np.zeros((resolution, resolution))
+
+    for k in xrange(int(resolution)):
+        x = -interval + (2.0 * interval * k / resolution)
+        for j in xrange(int(resolution)):
+            y = -interval + (2.0 * interval * j / resolution)
             z = np.array([x, y])
 
-            # r_d, r_s = gradient_descent(z, f, df)
-            # desc_res[k, j] = r_d
-            # desc_steps[k, j] = r_s
+            try:
+                r_d, r_s = gradient_descent(z, f, df)
+                print r_d
+                r_d = get_conv_color(r_d)
+            except:
+                r_d = 0
+                r_s = -1
+            desc_res[k, j] = r_d
+            desc_steps[k, j] = r_s
 
-            # n_d, n_s = newton_backtrack(z, f, df, Hf)
-            # newton_res[k, j] = n_d
-            # newton_steps[k, j] = n_s
+            try:
+                n_d, n_s = newton_backtrack(z, f, df, Hf)
+                n_d = get_conv_color(n_d)
+            except:
+                print 'exception'
+                n_d = 0
+                n_s = -1
+            print n_d
+            newton_res[k, j] = n_d
+            newton_steps[k, j] = n_s
 
-            c_d, c_s = conjugate_gradients(z, f, df)
-            print c_d
+            try:
+                c_d, c_s = conjugate_gradients(z, f, df)
+                c_d = get_conv_color(c_d)
+            except:
+                c_d = 0
+                c_s = -1
             conj_res[k, j] = c_d
             conj_steps[k, j] = c_s
 
-    import pdb; pdb.set_trace()
+    print_matrix(desc_steps, 'desc_steps.png', interval)
+    print_matrix(desc_res, 'desc_results.png', interval)
+    print_matrix(newton_steps, 'newton_steps.png', interval)
+    print_matrix(newton_res, 'newton_results.png', interval)
+    # print_matrix(conj_steps, 'conjugate_steps.png', interval)
+    # print_matrix(conj_res, 'conjugate_results.png', interval)
